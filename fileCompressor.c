@@ -7,7 +7,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <fcntl.h>  
+#include <fcntl.h>
+#include <dirent.h>  
 
 int string_equal(char* arg1,char* arg2){
     int a = 0;
@@ -33,7 +34,7 @@ int string_equal(char* arg1,char* arg2){
 // 	return count_in_use;
 // }
 
-typedef struct {
+typedef struct HuffmanCode{
 	char* token; //“the”
 	int count; //“30
 	struct HuffmanCode* left;
@@ -79,84 +80,168 @@ int sizeOfList(Node* n) {
     } 
     return counter;
 }
+void build(int fileD){
+    int read_status = 0;
+    char c = ' ';
+    int counter = 0;
+    char buffer[100];
+    Node* head = NULL;
+    do {
+        read_status = read(fileD, &c, 1);
+        if(read_status == 0){ // reached the end of the file
+            break;
+        }
+
+        if(c == '\n' ||c == ' ') {
+                
+            buffer[counter] = '\0';
+
+            insert(&head,buffer);
+
+            char buffer2[2] = {};
+            if(c == '\n'){
+                buffer2[0] = '*'; // * = new line
+            }else{
+                buffer2[0] = c;
+            }
+            buffer2[1] = '\0';
+            insert(&head,buffer2);
+
+            memset(buffer, '\0', 100);
+            counter = 0;
+        } else {
+            buffer[counter] = c;
+            counter++;
+        }
+
+    }while(read_status > 0);
+
+    buffer[counter] = '\0';
+    insert(&head,buffer);
+
+    printList(head);
+    int total = sizeOfList(head);
+    printf("Total number of nodes in array is %d\n", total); 
+
+    //Start huffman Coding 
+    //HuffmanCode* root = NULL;
+}
+void compress(int fileD, int codeBookFD){
+
+}
+
+void decompress(int fileD, int codeBookFD){
+
+}
+
+int selection(int ifrecursive, char* name, char flag){
+    int fileD = open(name,O_RDONLY); // file
+        if(!(fileD > 0)){
+            printf("File doesn't Exist.\n");
+            return -1;
+        }
+        int codeBookFD = open("./HuffmanCodebook",O_WRONLY | O_CREAT, 0744); // codebook
+
+        if(flag == 'b'){ //build codebook
+            build(fileD);
+        } else if(flag == 'c'){ // compress
+            compress(fileD, codeBookFD);
+        } else if(flag == 'd'){ // decompress
+            decompress(fileD, codeBookFD);
+        }
+    return 0;
+}
+
+int recursiveDirectories(char* name, int ifrecursive,char flag){
+    DIR* directory = opendir(name);
+
+    if(directory == NULL){
+            printf("Directory doesn't exist\n");
+            return -1;
+        }
+        
+        struct dirent* currentElement = NULL;
+        readdir(directory);
+        readdir(directory);
+        currentElement = readdir(directory);
+
+        while(currentElement != NULL){
+	        if(currentElement->d_type == DT_REG){ //if its a file
+		        printf("File: %s\n", currentElement ->d_name);
+                int result = selection(ifrecursive,currentElement ->d_name,flag);
+                    if(result == -1){
+                        return -1;
+                    }
+            } 
+            if(currentElement->d_type == DT_DIR){ // if its a directory
+	            printf("Directory: %s\n", currentElement ->d_name);
+                int result = recursiveDirectories(currentElement ->d_name, ifrecursive, flag);
+                if(result == -1){
+                    return -1;
+                }
+            }
+            currentElement = readdir(directory);
+        }
+    closedir(directory);
+    return 0;
+}
 
 int main(int argc, char** argv) { 
-
-    int ifrecursive = 0;
+ // ------------------------------------------------------------------------------------------------------
+ // Flag Stuff
+    int ifrecursive = 0, gotFlag = 0;
     char flag;
-
-    if(string_equal(argv[1],"-R")){ // Recursive
-        ifrecursive = 1;
-    }   
-    int fileD = open(argv[2 + ifrecursive],O_RDONLY); // file or path
-    int fd = open("./HuffmanCodebook",O_WRONLY | O_CREAT, 0744); // codebook
-
-    if(string_equal(argv[1 + ifrecursive],"-b")){ //build codebook
-        flag = 'b';
- 
-        int read_status = 0;
-        char c = ' ';
-        int counter = 0;
-        char buffer[100];
-        Node* head = NULL;
-        do {
-            read_status = read(fileD, &c, 1);
-            if(read_status == 0){ // reached the end of the file
-                break;
+    int i = 0;
+    for(i = 1;i < 3;i++){
+        if(string_equal(argv[i],"-R")){
+            if(ifrecursive == 0){
+                ifrecursive = 1;
+            }else{
+                printf("Error, already entered Recursive\n");
+                return -1;
             }
-
-            if(c == '\n' ||c == ' ') {
-                
-                buffer[counter] = '\0';
-
-                insert(&head,buffer);
-
-                char buffer2[2] = {};
-                if(c == '\n'){
-                    buffer2[0] = '$';
-                }else{
-                    buffer2[0] = c;
-                }
-                buffer2[1] = '\0';
-                insert(&head,buffer2);
-
-                memset(buffer, '\0', 100);
-                counter = 0;
-            } else {
-                buffer[counter] = c;
-                counter++;
+        }
+        else if(string_equal(argv[i],"-b") || string_equal(argv[i],"-c") || string_equal(argv[i],"-d")){
+            if(gotFlag == 0){
+                flag = argv[i][1];
+                gotFlag++; 
             }
-
-        }while(read_status > 0);
-
-        buffer[counter] = '\0';
-        insert(&head,buffer);
-
-        printList(head);
-        int total = sizeOfList(head);
-        printf("Total number of nodes in array is %d\n", total); 
-
-        //Start huffman Coding
-        
-        // int i;
-        // for(i = 0; i < ;i++){
-        //     if(buffer[i] == ' ' || buffer[i] == '\n'){
-
-        //     } else {
-
-        //     }
-        // }
-
-    } else if(string_equal(argv[1 + ifrecursive],"-c")){ // compress
-        flag = 'c';
-
-
-    } else if(string_equal(argv[1 + ifrecursive],"-d")){ // decompress
-        flag = 'd';
-
-
-    } else { //Error
-        printf("Incorrect input, please try again");
+            else{
+                printf("Error, already entered a Flag\n");
+                return -1;
+            }
+        } 
+    }
+    if(gotFlag == 0){
+        printf("Please enter a flag");
         return -1;
     }
+
+    // ------------------------------------------------------------------------------------------------------
+
+    if(ifrecursive == 1){
+        int result = recursiveDirectories(argv[3], ifrecursive, flag);
+        if(result == -1){
+            return -1;
+        }
+
+        // while(currentElement->d_type != DT_DIR && currentElement != NULL){
+        //     printf("found dir: %s\n", currentElement ->d_name);
+	    //     currentElement = readdir(directory);
+        // }
+
+        // int newpartLen = strlen(currentElement ->d_name);
+        // printf("newPartlen = %d\n", newpartLen);
+        // int pathLen = strlen(argv[3]);
+        // printf("pathLen = %d\n", pathLen);
+        // char* newPath = (char*)malloc(sizeof(char)* newpartLen+pathLen+2);
+        // printf("newPath = %s\n", newPath);
+    } else {
+        char* name = argv[2];
+        int result = selection(ifrecursive,name,flag);
+        if(result == -1){
+            return -1;
+        }
+    }    
+    return 0;
 }
