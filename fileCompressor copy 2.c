@@ -275,19 +275,44 @@ int main(int argc, char **argv)
     int ascii_character_span = char_upper_bound - char_lower_bound;
     int ifrecursive = 0;
     char flag;
-
-    if (string_equal(argv[1], "-R"))
-    { // Recursives
-        ifrecursive = 1;
+    int ifrecursive = 0, gotFlag = 0;
+    char flag;
+    int i = 0;
+    for(i = 1;i < 3;i++){
+        if(string_equal(argv[i],"-R")){
+            if(ifrecursive == 0){
+                ifrecursive = 1;
+            }else{
+                printf("Error, already entered Recursive\n");
+                return -1;
+            }
+        }
+        else if(string_equal(argv[i],"-b") || string_equal(argv[i],"-c") || string_equal(argv[i],"-d")){
+            if(gotFlag == 0){
+                flag = argv[i][1];
+                gotFlag++; 
+            }
+            else{
+                printf("Error, already entered a Flag\n");
+                return -1;
+            }
+        } 
     }
-    int fileD = open(argv[2 + ifrecursive], O_RDONLY);            // file or path
-    int fd = open("./HuffmanCodebook", O_WRONLY | O_TRUNC, 0744); // codebook
-    write(fd,"$\n",2);
+    if(gotFlag == 0){
+        printf("Please enter a flag");
+        return -1;
+    }
 
-    if (string_equal(argv[1 + ifrecursive], "-b"))
-    { //build codebook
+    // ------------------------------------------------------------------------------------------------------
+
+    if(ifrecursive == 1){
+
+    } else {
+        char* name = argv[2];
         flag = 'b';
-
+        int fileD = open(name, O_RDONLY);            // file or path
+        int fd = open("./HuffmanCodebook", O_WRONLY | O_TRUNC, 0744); // codebook
+        write(fd,"$\n",2);
         int read_status = 0;
         char *buffer = (char *)calloc(0111111, sizeof(char));
         int bytesReadSoFar, numOfBytes = 1000;
@@ -349,19 +374,5 @@ int main(int argc, char **argv)
         struct mHeapNode* root = removemHeap(info,heap);
 
         traverse(root,0,0);
-        
-    }
-    else if (string_equal(argv[1 + ifrecursive], "-c"))
-    { // compress
-        flag = 'c';
-    }
-    else if (string_equal(argv[1 + ifrecursive], "-d"))
-    { // decompress
-        flag = 'd';
-    }
-    else
-    { //Error
-        printf("Incorrect input, please try again");
-        return -1;
-    }
+        }
 }

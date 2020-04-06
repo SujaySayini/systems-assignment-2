@@ -247,10 +247,46 @@ int power(int base,int exp){
     return tracker;
 }
 
-void traverse(struct mHeapNode* node,int h,int prefix){
+struct huff_encoding{
+    int encoding;
+    char * token;
+    struct huff_encoding* next;
+};
+
+
+void encoding_insert_token(struct huff_encoding **table, struct huff_encoding* toinsert)
+{
+    int hash = ((int)toinsert->token[0]) - char_lower_bound;
+    struct huff_encoding* LLNode = table[hash];
+    
+    if (LLNode == NULL)
+    {
+        table[hash] = toinsert;
+        printf("%s\n",table[hash]->token);
+        return;
+    }
+    else{
+        printf("%s\n",table[hash]->token);
+    }
+    /*
+    while (LLNode->next != NULL)
+    {
+        LLNode = LLNode->next;
+    }
+    LLNode->next = toinsert;
+    */
+}
+
+
+void traverse(struct mHeapNode* node,int h,int prefix,struct huff_encoding ** table){
     
     if(!node->isSubTree){
         int fd = open("./HuffmanCodebook", O_WRONLY|O_APPEND, 0744); // codebook
+        char * token = (char *)node->data;
+        struct huff_encoding to_add;
+        to_add.encoding = prefix;
+        to_add.token = token;
+        encoding_insert_token(table,&to_add);
         //;
         int a;
         for(a = (h - 1);a >= 0;a--){
@@ -259,15 +295,57 @@ void traverse(struct mHeapNode* node,int h,int prefix){
             prefix = prefix % power(10,a);
             
         }
-        char * token = (char *)node->data;
+        
         write(fd,"\t",1);
         write(fd,token,strlen(token));
         write(fd,"\n",1);
     }    
     else{
-        traverse((struct mHeapNode*)node->data,h+1,prefix * 10);
-        traverse((struct mHeapNode*)node->data2,h+1,prefix * 10 + 1);
+        traverse((struct mHeapNode*)node->data,h+1,prefix * 10,table);
+        traverse((struct mHeapNode*)node->data2,h+1,prefix * 10 + 1,table);
     }
+}
+
+void insert_freq_nodes_into_heap(struct mHeapInfo *info, struct mHeapNode **heap, struct token_freq **freq_table, struct token_table_info* freq_table_info, int ascii_character_span)
+{
+    int a;
+    for (a = 0; a < ascii_character_span; a++)
+    {
+        if (freq_table[a] != NULL)
+        {
+            struct token_freq *current = freq_table[a]->next;
+
+            while (current != NULL)
+            {
+                info->length = freq_table_info->tokens;
+                struct mHeapNode *toInsert = (struct mHeapNode *)malloc(sizeof(struct mHeapNode *));
+                toInsert->count = current->count;
+                toInsert->isSubTree = false;
+                toInsert->data = current->token;
+                current = current->next;
+                insertmHeap(info, heap, toInsert);
+            }
+        }
+    }
+}
+
+int r_file(char * path,char** buff){
+    struct stat stats;
+    int read_status = 0;
+    stat(path,&stats);
+    int bytesReadSoFar = 0, numOfBytes = stats.st_size;
+    *buff = (char*)malloc(sizeof(char*) * stats.st_size);
+    int fileD = open(path, O_RDONLY); 
+    do
+    {
+        read_status = read(fileD, *(buff + bytesReadSoFar), numOfBytes - bytesReadSoFar);
+        bytesReadSoFar += read_status;
+
+    } while (read_status > 0 && bytesReadSoFar < numOfBytes);  
+    if(read_status > 0)
+        return stats.st_size;
+    return read_status;
+        
 }
 
 int main(int argc, char **argv)
@@ -308,48 +386,25 @@ int main(int argc, char **argv)
     } else {
         char* name = argv[2];
         flag = 'b';
-        int fileD = open(name, O_RDONLY);            // file or path
+                 // file or path
         int fd = open("./HuffmanCodebook", O_WRONLY|O_CREAT | O_TRUNC, 0744); // codebook
         write(fd,"$\n",2);
-        int read_status = 0;
-        char *buffer = (char *)calloc(0111111, sizeof(char));
-        int bytesReadSoFar = 0, numOfBytes = 1000;
         
-        do
-        {
-            read_status = read(fileD, buffer + bytesReadSoFar, numOfBytes - bytesReadSoFar);
-            bytesReadSoFar += read_status;
+        char *buffer;
+        int size = r_file(name,&buffer);
+        if(size < 0){
+            //Error
+        }
 
-        } while (read_status > 0 && bytesReadSoFar < numOfBytes);
-        printf("%d\n",bytesReadSoFar);
         struct token_freq **freq_table = (struct token_freq **)malloc((sizeof(struct token_freq *) * ascii_character_span));
         struct token_table_info *freq_table_info = (struct token_table_info *)malloc(sizeof(struct token_table_info *));
-        populate_frequency_table(freq_table_info, freq_table, buffer, bytesReadSoFar);
+        populate_frequency_table(freq_table_info, freq_table, buffer, size);
 
         int number_of_tokens = freq_table_info->tokens;
         struct mHeapNode **heap = (struct mHeapNode **)malloc(sizeof(struct mHeap **) * number_of_tokens);
         struct mHeapInfo* info = (struct mHeapInfo*) malloc(sizeof(struct mHeapInfo*));
+        insert_freq_nodes_into_heap(info,heap,freq_table,freq_table_info,ascii_character_span);
         
-        int a;
-        for (a = 0; a < ascii_character_span; a++)
-        {
-            if (freq_table[a] != NULL)
-            {
-                struct token_freq *current = freq_table[a]->next;
-                
-                while (current != NULL)
-                {
-                    info->length = number_of_tokens;
-                    struct mHeapNode *toInsert = (struct mHeapNode *)malloc(sizeof(struct mHeapNode *));
-                    toInsert->count = current->count;
-                    toInsert->isSubTree = false;
-                    toInsert->data = current->token;
-                    current = current->next;
-                    insertmHeap(info,heap,toInsert);
-                }
-            }
-        }
-        print_heap(info,heap);
         while(info->lastnode >= 1){
             struct mHeapNode* j = removemHeap(info,heap);
             struct mHeapNode* k = removemHeap(info,heap);
@@ -371,7 +426,9 @@ int main(int argc, char **argv)
         }
         struct mHeapNode* root = removemHeap(info,heap);
         
-        traverse(root,0,0);
+        struct huff_encoding** encoder = malloc(sizeof(struct huff_encoding*) * ascii_character_span);
+
+        traverse(root,0,0,encoder);
         
         }
 }
