@@ -128,6 +128,9 @@ void build(int fileD){
 }
 void compress(int fileD, int codeBookFD){
 
+    
+
+
 }
 
 void decompress(int fileD, int codeBookFD){
@@ -140,15 +143,19 @@ int selection(int ifrecursive, char* name, char flag){
             printf("File doesn't Exist.\n");
             return -1;
         }
-        int codeBookFD = open("./HuffmanCodebook",O_WRONLY | O_CREAT, 0744); // codebook
+    int codeBookFD = open("./HuffmanCodebook",O_WRONLY | O_CREAT, 0744); // codebook
 
-        if(flag == 'b'){ //build codebook
-            build(fileD);
-        } else if(flag == 'c'){ // compress
-            compress(fileD, codeBookFD);
-        } else if(flag == 'd'){ // decompress
-            decompress(fileD, codeBookFD);
-        }
+    if(flag == 'b'){ //build codebook
+        build(fileD);
+    } else if(flag == 'c'){ // compress
+        // if() {
+            
+        // }
+        compress(fileD, codeBookFD);
+    } else if(flag == 'd'){ // decompress
+        decompress(fileD, codeBookFD);
+    }
+    close(fileD);
     return 0;
 }
 
@@ -158,30 +165,30 @@ int recursiveDirectories(char* name, int ifrecursive,char flag){
     if(directory == NULL){
             printf("Directory doesn't exist\n");
             return -1;
-        }
+    }
         
-        struct dirent* currentElement = NULL;
-        readdir(directory);
-        readdir(directory);
-        currentElement = readdir(directory);
+    struct dirent* currentElement = NULL;
+    readdir(directory);
+    readdir(directory);
+    currentElement = readdir(directory);
 
-        while(currentElement != NULL){
-	        if(currentElement->d_type == DT_REG){ //if its a file
-		        printf("File: %s\n", currentElement ->d_name);
-                int result = selection(ifrecursive,currentElement ->d_name,flag);
-                    if(result == -1){
-                        return -1;
-                    }
-            } 
-            if(currentElement->d_type == DT_DIR){ // if its a directory
-	            printf("Directory: %s\n", currentElement ->d_name);
-                int result = recursiveDirectories(currentElement ->d_name, ifrecursive, flag);
-                if(result == -1){
-                    return -1;
-                }
+    while(currentElement != NULL){
+	    if(currentElement->d_type == DT_REG){ //if its a file
+		    printf("File: %s\n", currentElement ->d_name);
+            int result = selection(ifrecursive,currentElement ->d_name,flag);
+            if(result == -1){
+                return -1;
             }
-            currentElement = readdir(directory);
+        } 
+        if(currentElement->d_type == DT_DIR){ // if its a directory
+	        printf("Directory: %s\n", currentElement ->d_name);
+            int result = recursiveDirectories(currentElement ->d_name, ifrecursive, flag);
+            if(result == -1){
+                return -1;
+            }
         }
+        currentElement = readdir(directory);
+    }
     closedir(directory);
     return 0;
 }
@@ -237,8 +244,7 @@ int main(int argc, char** argv) {
         // char* newPath = (char*)malloc(sizeof(char)* newpartLen+pathLen+2);
         // printf("newPath = %s\n", newPath);
     } else {
-        char* name = argv[2];
-        int result = selection(ifrecursive,name,flag);
+        int result = selection(ifrecursive,argv[2],flag);
         if(result == -1){
             return -1;
         }
