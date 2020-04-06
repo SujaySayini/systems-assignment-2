@@ -1,5 +1,5 @@
-All: test.c plusone.o
-	Gcc test.c plusone.o
+All: 
+	gcc fileCompressor.c -o ./out
 Plusone.o : plusone.c
 	Gcc - c plusone.c
 Clean:
