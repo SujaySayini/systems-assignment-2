@@ -258,27 +258,21 @@ void encoding_insert_token(struct huff_encoding **table, struct huff_encoding* t
 {
     int hash = ((int)toinsert->token[0]) - char_lower_bound;
     struct huff_encoding* LLNode = table[hash];
-    
     if (LLNode == NULL)
     {
         table[hash] = toinsert;
-        printf("%s\n",table[hash]->token);
+        table[hash]->next = NULL;
         return;
     }
     else{
-        printf("%s\n",table[hash]->token);
+        if(LLNode->next != NULL){
+        }
+        LLNode->next = toinsert;
     }
-    /*
-    while (LLNode->next != NULL)
-    {
-        LLNode = LLNode->next;
-    }
-    LLNode->next = toinsert;
-    */
 }
 
 
-void traverse(struct mHeapNode* node,int h,int prefix,struct huff_encoding ** table){
+void traverse(struct mHeapNode* node,int h,int prefix){
     
     if(!node->isSubTree){
         int fd = open("./HuffmanCodebook", O_WRONLY|O_APPEND, 0744); // codebook
@@ -286,8 +280,6 @@ void traverse(struct mHeapNode* node,int h,int prefix,struct huff_encoding ** ta
         struct huff_encoding to_add;
         to_add.encoding = prefix;
         to_add.token = token;
-        encoding_insert_token(table,&to_add);
-        //;
         int a;
         for(a = (h - 1);a >= 0;a--){
             int towrite = (prefix/(power(10,a)) + 48);
@@ -301,8 +293,8 @@ void traverse(struct mHeapNode* node,int h,int prefix,struct huff_encoding ** ta
         write(fd,"\n",1);
     }    
     else{
-        traverse((struct mHeapNode*)node->data,h+1,prefix * 10,table);
-        traverse((struct mHeapNode*)node->data2,h+1,prefix * 10 + 1,table);
+        traverse((struct mHeapNode*)node->data,h+1,prefix * 10);
+        traverse((struct mHeapNode*)node->data2,h+1,prefix * 10 + 1);
     }
 }
 
@@ -384,51 +376,64 @@ int main(int argc, char **argv)
     if(ifrecursive == 1){
 
     } else {
-        char* name = argv[2];
-        flag = 'b';
-                 // file or path
-        int fd = open("./HuffmanCodebook", O_WRONLY|O_CREAT | O_TRUNC, 0744); // codebook
-        write(fd,"$\n",2);
-        
-        char *buffer;
-        int size = r_file(name,&buffer);
-        if(size < 0){
-            //Error
-        }
-
-        struct token_freq **freq_table = (struct token_freq **)malloc((sizeof(struct token_freq *) * ascii_character_span));
-        struct token_table_info *freq_table_info = (struct token_table_info *)malloc(sizeof(struct token_table_info *));
-        populate_frequency_table(freq_table_info, freq_table, buffer, size);
-
-        int number_of_tokens = freq_table_info->tokens;
-        struct mHeapNode **heap = (struct mHeapNode **)malloc(sizeof(struct mHeap **) * number_of_tokens);
-        struct mHeapInfo* info = (struct mHeapInfo*) malloc(sizeof(struct mHeapInfo*));
-        insert_freq_nodes_into_heap(info,heap,freq_table,freq_table_info,ascii_character_span);
-        
-        while(info->lastnode >= 1){
-            struct mHeapNode* j = removemHeap(info,heap);
-            struct mHeapNode* k = removemHeap(info,heap);
-
-            int combined = j->count + k->count;
+        if(flag == 'b'){
+            char* name = argv[2];
+            flag = 'b';
+                    // file or path
+            int fd = open("./HuffmanCodebook", O_WRONLY|O_CREAT | O_TRUNC, 0744); // codebook
+            write(fd,"$\n",2);
             
-            struct mHeapNode *new = (struct mHeapNode *)malloc(sizeof(struct mHeapNode *));
-            new->count = combined;
-            new->isSubTree = true;
-            if(j->count > k->count){
-                new->data = k;
-                new->data2 = j;
+            char *buffer;
+            int size = r_file(name,&buffer);
+            if(size < 0){
+                //Error
             }
-            else{
-                new->data = j;
-                new->data2 = k;
-            }
-            insertmHeap(info,heap,new);
-        }
-        struct mHeapNode* root = removemHeap(info,heap);
-        
-        struct huff_encoding** encoder = malloc(sizeof(struct huff_encoding*) * ascii_character_span);
 
-        traverse(root,0,0,encoder);
-        
-        }
+            struct token_freq **freq_table = (struct token_freq **)malloc((sizeof(struct token_freq *) * ascii_character_span));
+            struct token_table_info *freq_table_info = (struct token_table_info *)malloc(sizeof(struct token_table_info *));
+            populate_frequency_table(freq_table_info, freq_table, buffer, size);
+
+            int number_of_tokens = freq_table_info->tokens;
+            struct mHeapNode **heap = (struct mHeapNode **)malloc(sizeof(struct mHeap **) * number_of_tokens);
+            struct mHeapInfo* info = (struct mHeapInfo*) malloc(sizeof(struct mHeapInfo*));
+            insert_freq_nodes_into_heap(info,heap,freq_table,freq_table_info,ascii_character_span);
+            
+            while(info->lastnode >= 1){
+                struct mHeapNode* j = removemHeap(info,heap);
+                struct mHeapNode* k = removemHeap(info,heap);
+
+                int combined = j->count + k->count;
+                
+                struct mHeapNode *new = (struct mHeapNode *)malloc(sizeof(struct mHeapNode *));
+                new->count = combined;
+                new->isSubTree = true;
+                if(j->count > k->count){
+                    new->data = k;
+                    new->data2 = j;
+                }
+                else{
+                    new->data = j;
+                    new->data2 = k;
+                }
+                insertmHeap(info,heap,new);
+            }
+            struct mHeapNode* root = removemHeap(info,heap);
+
+            traverse(root,0,0);
+         }
+         else if(flag == 'c'){
+            struct huff_encoding** encoder = malloc(sizeof(struct huff_encoding*) * ascii_character_span);
+            
+            char *buffer;
+            int size = r_file("./HuffmanCodeBook",&buffer);
+            if(size < 0){
+                //Error
+            }
+            printf("%d\n",size);
+            int a;
+            for(a = 0; a<size;a++){
+                printf("%c",buffer[a]);
+            }
+         }
+    }
 }

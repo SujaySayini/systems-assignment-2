@@ -2,7 +2,6 @@ $
 0	$s
 100	cat
 101	button
-110	ball
-11100	bog
-11101	a
-1111	dog
+1100	a
+1101	dog
+111	ball
