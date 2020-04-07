@@ -180,7 +180,6 @@ struct mHeapNode* removemHeap(struct mHeapInfo *info,struct mHeapNode ** heap){
     heap[0]=heap[info->lastnode];
     heap[info->lastnode] = NULL;
     int a;
-
     info->lastnode = info->lastnode - 1;
     
     int i = 0;
@@ -197,6 +196,7 @@ struct mHeapNode* removemHeap(struct mHeapInfo *info,struct mHeapNode ** heap){
                 right_node = 2 * i + 2;
             }
         }
+        
         else if(heap[right_node]->count < heap[left_node]->count){
             if(heap[right_node]->count < heap[i]->count){
                 struct mHeapNode* holder = heap[right_node];
@@ -208,12 +208,13 @@ struct mHeapNode* removemHeap(struct mHeapInfo *info,struct mHeapNode ** heap){
             }
         }
     }
+    
     return toReturn;
     
 }
 
 void insertmHeap(struct mHeapInfo *info, struct mHeapNode **heap, struct mHeapNode *node)
-{
+{   
     int a;
     for (a = 0; a < info->length; a++)
     {
@@ -234,8 +235,10 @@ void insertmHeap(struct mHeapInfo *info, struct mHeapNode **heap, struct mHeapNo
                     i = ((i - 1 )/ 2);
                     parent = heap[(i-1)/2];
                     current = heap[i];
+
                 }
             }
+
             break;
         }
     }
@@ -355,13 +358,16 @@ void itoa(int n, char s[])
 
 void insert_freq_nodes_into_heap(struct mHeapInfo *info, struct mHeapNode **heap, struct token_freq **freq_table, struct token_table_info* freq_table_info, int ascii_character_span)
 {
+    print_hash_table(freq_table,ascii_character_span);
     int a;
     for (a = 0; a < ascii_character_span; a++)
     {
-        if (freq_table[a] != NULL)
-        {
-            struct token_freq *current = freq_table[a]->next;
 
+        if (freq_table[a] != NULL)
+        { 
+           
+            struct token_freq *current = freq_table[a]->next;
+            
             while (current != NULL)
             {
                 info->length = freq_table_info->tokens;
@@ -372,8 +378,13 @@ void insert_freq_nodes_into_heap(struct mHeapInfo *info, struct mHeapNode **heap
                 current = current->next;
                 insertmHeap(info, heap, toInsert);
             }
+            
+            
         }
+        
+        
     }
+    
 }
 
 int r_file(char * path,char** buff){
@@ -394,51 +405,7 @@ int r_file(char * path,char** buff){
     return read_status;
         
 }
-int recursiveDirectories(char* name, char flag){
-    char* path = malloc(strlen(name) + 30);
-    DIR* directory = opendir(name);
-    if(directory == NULL){
-        printf("Directory doesn't exist\n");
-        closedir(directory);
-        return -1;
-    }
-    printf("directory's name is %s\n", name);
 
-    struct dirent* currentElement = NULL;
-    readdir(directory);
-    readdir(directory);
-
-    currentElement = readdir(directory);
-
-    while(currentElement != NULL){
-        printf("element name is %s\n", currentElement->d_name);
-        //struct stat stats;
-        //int status = stat(currentElement->d_name, &stats);
-
-        // if(status != 0){
-        //     printf("Error couldn't read into the path.\n");
-        //     return -1;
-        // }
-        //if(S_ISREG(stats.st_mode)){ // if its a file
-        if(currentElement->d_type == 8){
-            printf("file name is %s\n", currentElement->d_name);
-
-
-        }
-        //if(S_ISDIR(stats.st_mode)){ // if its directory
-        if(currentElement->d_type == 4){
-            printf("directory name is %s\n", currentElement->d_name);
-            strcpy(path, name);
-            strcat(path, currentElement->d_name);
-            //printf("path is %s\n", path);
-            recursiveDirectories(path, flag);
-        }
-        currentElement = readdir(directory);
-    }
-    free(path);
-    closedir(directory);
-    return 0;
-}
 
 void do_encoding(char* huffman,struct huff_encoding** encoder)
 {
@@ -454,9 +421,6 @@ void do_encoding(char* huffman,struct huff_encoding** encoder)
     int tracker1 = 2;
     int tracker2 = 2;
     int a;
-    for(a = 0;a<size;a++){
-        printf("%c",buffer[a]);
-    }
     while (tracker2 < size)
     {   
         if (buffer[tracker2] == '\t')
@@ -492,7 +456,6 @@ void do_encoding(char* huffman,struct huff_encoding** encoder)
 
 void compress_file(char *path, struct huff_encoding **encoder)
 {
-
     char *new_name = (char *)malloc((strlen(path) + 4) * sizeof(char));
     strcat(new_name, path);
     strcat(new_name, ".hcz");
@@ -546,6 +509,118 @@ void compress_file(char *path, struct huff_encoding **encoder)
     }
 }
 
+int recursiveDirectories(char* name, char flag, struct huff_encoding** encoder){
+    char* path = malloc(strlen(name) + 30);
+    DIR* directory = opendir(name);
+    if(directory == NULL){
+        printf("Directory doesn't exist\n");
+        closedir(directory);
+        return -1;
+    }
+
+    struct dirent* currentElement = NULL;
+    readdir(directory);
+    readdir(directory);
+
+    currentElement = readdir(directory);
+
+    while(currentElement != NULL){
+        //struct stat stats;
+        //int status = stat(currentElement->d_name, &stats);
+
+        // if(status != 0){
+        //     printf("Error couldn't read into the path.\n");
+        //     return -1;
+        // }
+        //if(S_ISREG(stats.st_mode)){ // if its a file
+        if(currentElement->d_type == 8){
+            if(flag == 'c'){
+                char * holder = (char *) malloc((strlen(name) + strlen(currentElement->d_name) + 1) * sizeof(char));
+                strcat(holder,name);
+                strcat(holder,"/");
+                strcat(holder,currentElement->d_name);
+                char * d_name = currentElement -> d_name;
+                int length = strlen(d_name);
+                if(length > 4 && d_name[length - 4] == '.' && d_name[length - 3] == 't' && d_name[length - 2] == 'x' && d_name[length - 1] == 't'){
+                    compress_file(holder,encoder);
+                }
+            }
+            if(flag == 'b'){
+
+            }
+
+        }
+        //if(S_ISDIR(stats.st_mode)){ // if its directory
+        if(currentElement->d_type == 4){
+            strcpy(path, name);
+            strcat(path, currentElement->d_name);
+            //printf("path is %s\n", path);
+            recursiveDirectories(path, flag,encoder);
+        }
+        currentElement = readdir(directory);
+    }
+    free(path);
+    closedir(directory);
+    return 0;
+}
+
+int recursiveDirectoriesFreqTable(char* name, char flag, struct token_table_info *freq_table_info,struct token_freq** freq_table){
+    char* path = malloc(strlen(name) + 30);
+    DIR* directory = opendir(name);
+    if(directory == NULL){
+        printf("Directory doesn't exist\n");
+        closedir(directory);
+        return -1;
+    }
+
+    struct dirent* currentElement = NULL;
+    readdir(directory);
+    readdir(directory);
+
+    currentElement = readdir(directory);
+
+    while(currentElement != NULL){
+        //struct stat stats;
+        //int status = stat(currentElement->d_name, &stats);
+
+        // if(status != 0){
+        //     printf("Error couldn't read into the path.\n");
+        //     return -1;
+        // }
+        //if(S_ISREG(stats.st_mode)){ // if its a file
+        if(currentElement->d_type == 8){
+            if(flag == 'b'){
+                
+                char * holder = (char *) malloc((strlen(name) + strlen(currentElement->d_name) + 1) * sizeof(char));
+                
+                strcat(holder,name);
+                strcat(holder,"/");
+                strcat(holder,currentElement->d_name);
+                char * buff;
+                
+                int size = r_file(holder,&buff);
+                if(size < 0){
+                    //error
+                }
+                
+                populate_frequency_table(freq_table_info, freq_table, buff, size);
+                
+            }
+        }
+        //if(S_ISDIR(stats.st_mode)){ // if its directory
+        if(currentElement->d_type == 4){
+            strcpy(path, name);
+            strcat(path, currentElement->d_name);
+            //printf("path is %s\n", path);
+            recursiveDirectoriesFreqTable(path, flag,freq_table_info,freq_table);
+        }
+        currentElement = readdir(directory);
+    }
+    free(path);
+    closedir(directory);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     int ascii_character_span = char_upper_bound - char_lower_bound;
@@ -579,36 +654,40 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------------------------------------------------------------
 
-    if(ifrecursive == 1){
-        int result = recursiveDirectories(argv[3], flag);
-        if(result == -1){
-            return -1;
-        }
 
-    } else {
         if(flag == 'b'){
             char* name = argv[2];
             int fd = open("./HuffmanCodebook", O_WRONLY|O_CREAT | O_TRUNC, 0744); // codebook
             write(fd,"$\n",2);
             
             char *buffer;
-            int size = r_file(name,&buffer);
-            if(size < 0){
-                //Error
-            }
+            int size;
 
             struct token_freq **freq_table = (struct token_freq **)malloc((sizeof(struct token_freq *) * ascii_character_span));
             struct token_table_info *freq_table_info = (struct token_table_info *)malloc(sizeof(struct token_table_info *));
-            populate_frequency_table(freq_table_info, freq_table, buffer, size);
-
+            
+            if(ifrecursive){
+                recursiveDirectoriesFreqTable(argv[3],flag,freq_table_info,freq_table);
+            }
+            else{
+                size = r_file(name,&buffer);
+                if(size < 0){
+                    //Error
+                }
+                populate_frequency_table(freq_table_info, freq_table, buffer, size);
+            }
+            
             int number_of_tokens = freq_table_info->tokens;
-            struct mHeapNode **heap = (struct mHeapNode **)malloc(sizeof(struct mHeap **) * number_of_tokens);
+            struct mHeapNode **heap = (struct mHeapNode **)calloc(sizeof(struct mHeap **),sizeof(struct mHeap **) * number_of_tokens);
             struct mHeapInfo* info = (struct mHeapInfo*) malloc(sizeof(struct mHeapInfo*));
             insert_freq_nodes_into_heap(info,heap,freq_table,freq_table_info,ascii_character_span);
+            print_heap(info,heap);
+            
             while(info->lastnode >= 1){
                 struct mHeapNode* j = removemHeap(info,heap);
+                
                 struct mHeapNode* k = removemHeap(info,heap);
-
+                
                 int combined = j->count + k->count;
                 
                 struct mHeapNode *new = (struct mHeapNode *)malloc(sizeof(struct mHeapNode *));
@@ -623,18 +702,30 @@ int main(int argc, char **argv)
                     new->data2 = k;
                 }
                 insertmHeap(info,heap,new);
+                
+               
             }
-  
+            print_heap(info,heap);
             struct mHeapNode* root = removemHeap(info,heap);
 
             traverse(root,0,0);
-         }
+            
+         
+        }
          else if(flag == 'c'){
             struct huff_encoding** encoder = malloc(sizeof(struct huff_encoding*) * ascii_character_span);
-            char* name = argv[2];
-            
+                        
             do_encoding("./HuffmanCodebook",encoder);
-            compress_file(name,encoder);
+            if(ifrecursive){
+                recursiveDirectories(argv[3], flag, encoder);
+            }
+            else{
+                char* name = argv[2];
+                printf("%s\n",name);
+                compress_file(name,encoder);
+            }
+            
+            
 
          }
          else if (flag == 'd'){
@@ -681,4 +772,3 @@ int main(int argc, char **argv)
 
         }
     }
-}
