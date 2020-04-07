@@ -1,0 +1,8 @@
+fileCompressor.c
+
+Generates a huffman coding for a file or a directory or it will either 
+compress or decompress a file or directory.
+
+You have to give it -b to build, -c to compress, -d to decompress the file.
+If you want to do one of those flags on directory, you will have to add -R.
+

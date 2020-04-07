@@ -1,3 +1,3 @@
-hello what is hello is what hello hello
-hello is what
-what
+First we built and tested a min heap, as it was vital for huffman coding. Then we implemented a binary
+tree. We tested to make sure it was added correctly. Then we tested compressing and decompressing 
+singular files. Then we tested these operations recursively.
