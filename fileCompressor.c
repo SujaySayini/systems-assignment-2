@@ -3,11 +3,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <math.h>
+#include <limits.h>
+#include <libgen.h>
+#include <dirent.h>
 
 #define char_lower_bound 32
 #define char_upper_bound 127
@@ -339,6 +344,51 @@ int r_file(char * path,char** buff){
     return read_status;
         
 }
+int recursiveDirectories(char* name, char flag){
+    char* path = malloc(strlen(name) + 30);
+    DIR* directory = opendir(name);
+    if(directory == NULL){
+        printf("Directory doesn't exist\n");
+        closedir(directory);
+        return -1;
+    }
+    printf("directory's name is %s\n", name);
+
+    struct dirent* currentElement = NULL;
+    readdir(directory);
+    readdir(directory);
+
+    currentElement = readdir(directory);
+
+    while(currentElement != NULL){
+        printf("element name is %s\n", currentElement->d_name);
+        //struct stat stats;
+        //int status = stat(currentElement->d_name, &stats);
+
+        // if(status != 0){
+        //     printf("Error couldn't read into the path.\n");
+        //     return -1;
+        // }
+        //if(S_ISREG(stats.st_mode)){ // if its a file
+        if(currentElement->d_type == 8){
+            printf("file name is %s\n", currentElement->d_name);
+
+
+        }
+        //if(S_ISDIR(stats.st_mode)){ // if its directory
+        if(currentElement->d_type == 4){
+            printf("directory name is %s\n", currentElement->d_name);
+            strcpy(path, name);
+            strcat(path, currentElement->d_name);
+            //printf("path is %s\n", path);
+            recursiveDirectories(path, flag);
+        }
+        currentElement = readdir(directory);
+    }
+    free(path);
+    closedir(directory);
+    return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -374,12 +424,14 @@ int main(int argc, char **argv)
     // ------------------------------------------------------------------------------------------------------
 
     if(ifrecursive == 1){
+        int result = recursiveDirectories(argv[3], flag);
+        if(result == -1){
+            return -1;
+        }
 
     } else {
         if(flag == 'b'){
             char* name = argv[2];
-            flag = 'b';
-                    // file or path
             int fd = open("./HuffmanCodebook", O_WRONLY|O_CREAT | O_TRUNC, 0744); // codebook
             write(fd,"$\n",2);
             
@@ -435,5 +487,48 @@ int main(int argc, char **argv)
                 printf("%c",buffer[a]);
             }
          }
+         else if (flag == 'd'){
+            int fd = open("./HuffmanCodebook", O_RDONLY, 0744);
+            if(fd < 0){
+                printf("File doesn't exist\n");
+                return -1;
+            }
+            char c[3]; // dummy files 
+            read(fd, c,2);
+            char* buffer;
+            int size = r_file("./HuffmanCodebook",&buffer);
+            if(size < 0){
+                //Error
+            }
+
+
+            struct token_freq **freq_table = (struct token_freq **)malloc((sizeof(struct token_freq *) * ascii_character_span));
+            struct token_table_info *freq_table_info = (struct token_table_info *)malloc(sizeof(struct token_table_info *));
+            populate_frequency_table(freq_table_info, freq_table, buffer, size);
+            //void print_hash_table(struct token_freq **table, int length)
+            print_hash_table(freq_table,6);
+
+
+            int length = strlen(argv[2]);
+
+            if(!(argv[2][length-1] == 'z' && argv[2][length-2] == 'c'  && argv[2][length-3] == 'h')){
+                printf("Incorrect File.\n");
+                return -1;
+            }
+
+            int fd2 = open(argv[2], O_RDONLY, 0744);
+            if(fd2 < 0){
+                printf("File doesn't exist.\n");
+                return -1;
+            }
+
+
+
+            int fd3 = open("./HuffmanCodebook", O_WRONLY | O_CREAT, 0744);
+
+
+
+
+        }
     }
 }
