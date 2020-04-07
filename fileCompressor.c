@@ -119,10 +119,9 @@ void populate_frequency_table(struct token_table_info *table_info, struct token_
 {
     int i;
     int string_start = 0;
-    for (i = 0; i < buffer_l; i++)
+    for (i = 0; i <= buffer_l; i++)
     {
-        
-        if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t')
+        if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t' || i == (buffer_l))
         
         {
             int length = (i - string_start);
@@ -142,7 +141,6 @@ void populate_frequency_table(struct token_table_info *table_info, struct token_
             }
             else
             {
-                
                 freq_hash_increment_token(table_info, freq_table, "$s");
             }
             i++;
@@ -259,23 +257,47 @@ struct huff_encoding{
 };
 
 
-void encoding_insert_token(struct huff_encoding **table, struct huff_encoding* toinsert)
-{
-    int hash = ((int)toinsert->token[0]) - char_lower_bound;
-    struct huff_encoding* LLNode = table[hash];
-    if (LLNode == NULL)
-    {
-        table[hash] = toinsert;
-        table[hash]->next = NULL;
-        return;
-    }
-    else{
-        if(LLNode->next != NULL){
-        }
-        LLNode->next = toinsert;
-    }
+int encoding_hash(char* a){
+    return ((int)a[0]) - char_lower_bound;
 }
 
+void encoding_insert_token(struct huff_encoding **table, struct huff_encoding* toinsert)
+{   
+    int hash = encoding_hash(toinsert->token);
+    struct huff_encoding *LLNode = table[hash];
+    struct huff_encoding * holder;
+    struct huff_encoding * parent;
+    if (LLNode == NULL)
+    {
+        holder = malloc(sizeof(struct huff_encoding *));
+        holder->token = "";
+        table[hash] = holder;
+        holder->next = malloc(sizeof(struct huff_encoding *));
+        holder->next->token = toinsert->token;
+        holder->next->encoding = toinsert->encoding;
+        return;
+    }
+    while (LLNode != NULL)
+    {
+        parent = LLNode;
+        LLNode = LLNode->next;
+    }
+    parent->next = malloc(sizeof(struct huff_encoding*));
+    parent->next->token = toinsert->token;
+    parent->next->encoding = toinsert->encoding;
+}
+
+int getEncoding(struct huff_encoding** table,char * token){
+    int hash = encoding_hash(token);
+    struct huff_encoding* current = table[hash];
+    while(current != NULL){
+        if(string_equal(token,current->token)){
+            return current->encoding;
+        }
+        current = current->next;
+    }
+    return -1;
+}
 
 void traverse(struct mHeapNode* node,int h,int prefix){
     
@@ -302,6 +324,34 @@ void traverse(struct mHeapNode* node,int h,int prefix){
         traverse((struct mHeapNode*)node->data2,h+1,prefix * 10 + 1);
     }
 }
+
+void reverse(char s[])
+ {
+     int i, j;
+     char c;
+ 
+     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
+         c = s[i];
+         s[i] = s[j];
+         s[j] = c;
+     }
+ }
+
+void itoa(int n, char s[])
+ {
+     int i, sign;
+ 
+     if ((sign = n) < 0)  /* record sign */
+         n = -n;          /* make n positive */
+     i = 0;
+     do {       /* generate digits in reverse order */
+         s[i++] = n % 10 + '0';   /* get next digit */
+     } while ((n /= 10) > 0);     /* delete it */
+     if (sign < 0)
+         s[i++] = '-';
+     s[i] = '\0';
+     reverse(s);
+ }
 
 void insert_freq_nodes_into_heap(struct mHeapInfo *info, struct mHeapNode **heap, struct token_freq **freq_table, struct token_table_info* freq_table_info, int ascii_character_span)
 {
@@ -390,6 +440,112 @@ int recursiveDirectories(char* name, char flag){
     return 0;
 }
 
+void do_encoding(char* huffman,struct huff_encoding** encoder)
+{
+    char* buffer;
+    int size = r_file(huffman, &buffer);
+    struct huff_encoding* to_ins = (struct huff_encoding*) malloc(sizeof(struct huff_encoding*));
+    
+    if (size < 0)
+    {
+        //Error
+    }
+    int start;
+    int tracker1 = 2;
+    int tracker2 = 2;
+    int a;
+    for(a = 0;a<size;a++){
+        printf("%c",buffer[a]);
+    }
+    while (tracker2 < size)
+    {   
+        if (buffer[tracker2] == '\t')
+        {
+            int b;
+            int encoded = 0;
+            for (b = tracker1; b < tracker2; b++)
+            {
+                encoded = encoded * 10;
+                encoded = encoded + ((int)buffer[b] - 48);
+            }
+            to_ins->encoding = encoded;
+            tracker2++;
+            tracker1 = tracker2;
+        }
+        else if (buffer[tracker2] == '\n')
+        {
+            char *s;
+            string_create(&s, buffer, tracker1, tracker2 - (tracker1));
+            to_ins->token = s;
+        
+            encoding_insert_token(encoder, to_ins);
+            tracker2++;
+            tracker1 = tracker2;
+        }
+        else
+        {
+            tracker2++;
+        }
+    }
+    
+}
+
+void compress_file(char *path, struct huff_encoding **encoder)
+{
+
+    char *new_name = (char *)malloc((strlen(path) + 4) * sizeof(char));
+    strcat(new_name, path);
+    strcat(new_name, ".hcz");
+    int fd = open(new_name, O_WRONLY | O_CREAT | O_TRUNC, 0744);
+    char *file_c;
+    int buff_l = r_file(path, &file_c);
+    if (buff_l < 0)
+    {
+        //error
+    }
+
+    int i;
+    int string_start = 0;
+    for (i = 0; i < buff_l; i++)
+    {
+
+        if (file_c[i] == ' ' || file_c[i] == '\n' || file_c[i] == '\t')
+
+        {
+            int length = (i - string_start);
+
+            char *working_token;
+            string_create(&working_token, file_c, string_start, length);
+            if (i != string_start)
+            {
+                char *x = (char *)malloc(sizeof(char) * 20);
+                itoa(getEncoding(encoder, working_token), x);
+                write(fd, x, strlen(x));
+            }
+            if (file_c[i] == '\n')
+            {
+                char *x = (char *)malloc(sizeof(char) * 20);
+                itoa(getEncoding(encoder, "$n"), x);
+                write(fd, x, strlen(x));
+            }
+            if (file_c[i] == '\t')
+            {
+                char *x = (char *)malloc(sizeof(char) * 20);
+                itoa(getEncoding(encoder, "$t"), x);
+                write(fd, x, strlen(x));
+            }
+            else
+            {
+                char *x = (char *)malloc(sizeof(char) * 20);
+                itoa(getEncoding(encoder, "$s"), x);
+                write(fd, x, strlen(x));
+            }
+            i++;
+            string_start = i;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     int ascii_character_span = char_upper_bound - char_lower_bound;
@@ -449,7 +605,6 @@ int main(int argc, char **argv)
             struct mHeapNode **heap = (struct mHeapNode **)malloc(sizeof(struct mHeap **) * number_of_tokens);
             struct mHeapInfo* info = (struct mHeapInfo*) malloc(sizeof(struct mHeapInfo*));
             insert_freq_nodes_into_heap(info,heap,freq_table,freq_table_info,ascii_character_span);
-            
             while(info->lastnode >= 1){
                 struct mHeapNode* j = removemHeap(info,heap);
                 struct mHeapNode* k = removemHeap(info,heap);
@@ -469,23 +624,18 @@ int main(int argc, char **argv)
                 }
                 insertmHeap(info,heap,new);
             }
+  
             struct mHeapNode* root = removemHeap(info,heap);
 
             traverse(root,0,0);
          }
          else if(flag == 'c'){
             struct huff_encoding** encoder = malloc(sizeof(struct huff_encoding*) * ascii_character_span);
+            char* name = argv[2];
             
-            char *buffer;
-            int size = r_file("./HuffmanCodeBook",&buffer);
-            if(size < 0){
-                //Error
-            }
-            printf("%d\n",size);
-            int a;
-            for(a = 0; a<size;a++){
-                printf("%c",buffer[a]);
-            }
+            do_encoding("./HuffmanCodebook",encoder);
+            compress_file(name,encoder);
+
          }
          else if (flag == 'd'){
             int fd = open("./HuffmanCodebook", O_RDONLY, 0744);
